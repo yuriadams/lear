@@ -1,0 +1,8 @@
+CREATE TABLE books (
+  id SERIAL PRIMARY KEY,
+  gutenberg_id INT UNIQUE NOT NULL,
+  content TEXT NOT NULL,
+  metadata jsonb,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

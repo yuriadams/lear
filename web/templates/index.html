@@ -1,0 +1,21 @@
+<h1 class="text-3xl font-bold text-center">Project King Lear Explorer</h1>
+<form id="bookForm" class="mt-4 flex justify-center">
+  <input type="text" id="bookIdInput" name="book_id" placeholder="Enter King Lear Book ID"
+    class="border p-2 rounded-l-md w-64">
+  <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-md">Fetch</button>
+</form>
+
+<div id="loading" class="hidden text-center mt-4">
+  <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500"></div>
+</div>
+
+<script>
+  document.getElementById("bookForm").addEventListener("submit", function(event) {
+    event.preventDefault();
+    document.getElementById("loading").classList.remove("hidden");
+    const bookId = document.getElementById("bookIdInput").value.trim();
+    if (bookId) {
+      window.location.href = `/books/${bookId}`;
+    }
+  });
+</script>
