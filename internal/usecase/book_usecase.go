@@ -22,7 +22,7 @@ type BookAnalysis struct {
 }
 
 func NewBookUsecase(repo *repository.BookRepository) *BookUsecase {
-	return &BookUsecase{Repo: repo, Logger: service.NewLogger("[BookHandler]")}
+	return &BookUsecase{Repo: repo, Logger: service.NewLogger("[BookUsecase]")}
 }
 
 func (u *BookUsecase) FetchBook(gutenbergID int) (*model.Book, error) {
