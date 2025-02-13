@@ -1,6 +1,102 @@
+<style>
+  #analyze-button {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    z-index: 50;
+  }
+</style>
+
 <h1 class="text-3xl font-bold">{{ .Title }}</h1>
 <p class="text-lg text-gray-600">Author: {{ .Author }}</p>
+
+<div class="mt-6">
+  <button id="analyze-button" class="fixed bottom-4 right-4 bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded shadow z-50">
+    Analyze
+  </button>
+</div>
 
 <div class="mt-4 bg-white p-6 rounded shadow">
   <pre class="whitespace-pre-wrap text-gray-800">{{ .Content }}</pre>
 </div>
+
+<div id="analysis-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden z-50">
+  <div class="bg-white w-3/4 max-w-lg p-6 rounded shadow-lg relative">
+    <div class="relative">
+      <button id="close-modal" class="absolute top-0 right-0 text-gray-500 hover:text-black text-2xl font-bold">
+        &times;
+      </button>
+    </div>
+    
+    <h2 class="text-xl font-bold mb-4">Text Analysis</h2>
+    <div id="analysis-content" class="text-gray-700">
+      <p class="text-gray-500">Loading analysis...</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  const analyzeButton = document.getElementById("analyze-button");
+  const analyzeModal = document.getElementById("analysis-modal");
+  const closeModalButton = document.getElementById("close-modal");
+  const analysisOutput = document.getElementById("analysis-content");
+
+  const urlParts = window.location.pathname.split("/");
+  const bookId = urlParts[urlParts.indexOf("books") + 1]; // Get the segment after "books"
+
+  // Open the modal and start streaming analysis
+  analyzeButton.addEventListener("click", function () {
+    analyzeModal.classList.remove("hidden");
+    analysisOutput.innerHTML = "<p class='text-gray-500'>Loading analysis...</p>";
+
+    const eventSource = new EventSource(`/books/${bookId}/analyze`);
+
+    eventSource.onopen = function(event) {
+      console.log("Conexão SSE aberta");
+    };
+
+    var concatenatedText = "";
+    eventSource.addEventListener("CustomEvent", function(event) {
+      const data = JSON.parse(event.data);
+      concatenatedText += data.analysis;
+      analysisOutput.textContent = concatenatedText;
+    });
+
+    eventSource.addEventListener("Close", function(event) {
+      console.log("Event is closed:", event.data);
+      eventSource.close();
+    });
+
+    eventSource.onerror = function (err) {
+      console.error("EventSource failed:", err);
+
+      const errorParagraph = document.createElement("p");
+      errorParagraph.textContent = "Error: Failed to fetch analysis.";
+      errorParagraph.classList.add("text-red-500");
+      analysisOutput.appendChild(errorParagraph);
+      eventSource.close();
+    };
+  });
+
+  document.addEventListener("DOMContentLoaded", function () {
+    const analyzeButton = document.getElementById("analyze-button");
+    const modal = document.getElementById("analysis-modal");
+    const closeModal = document.getElementById("close-modal");
+
+    analyzeButton.addEventListener("click", () => {
+      modal.classList.remove("hidden");
+    });
+
+    closeModal.addEventListener("click", () => {
+      modal.classList.add("hidden");
+    });
+
+    analyzeButton.style.display = "block";
+  });
+
+  closeModalButton.addEventListener("click", function () {
+    analyzeModal.classList.add("hidden");
+  });
+  
+</script>
+</body>

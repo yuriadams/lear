@@ -39,7 +39,7 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
-	// Create a prompt and shorten the text if necessary
+	// shorten the text to don't raise a max token limit api error
 	shortenedText := limitTextToTokens(text, 10000)
 
 	prompt := fmt.Sprintf(`
@@ -63,13 +63,11 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 		Stream: true,
 	}
 
-	// Encode the request payload
 	reqBody, err := json.Marshal(chatRequest)
 	if err != nil {
 		return fmt.Errorf("failed to create request body: %w", err)
 	}
 
-	// Create the HTTP request
 	req, err := http.NewRequest("POST", SambaNovaChatAPIURL, bytes.NewBuffer(reqBody))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -77,7 +75,6 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 	req.Header.Set("Authorization", "Bearer "+os.Getenv("AI_API_TOKEN"))
 	req.Header.Set("Content-Type", "application/json")
 
-	// Send the request
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
@@ -85,7 +82,6 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 	}
 	defer resp.Body.Close()
 
-	// Check the response status
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("failed to analyze text, status %d: %s", resp.StatusCode, string(body))
@@ -110,12 +106,24 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 			return fmt.Errorf("failed to decode streamed chunk: %w", err)
 		}
 
-		// Extract and stream the `delta.content`
+		// // Extract and stream the `delta.content`
 		for _, choice := range chunk.Choices {
 			content := choice.Delta.Content
 			if content != "" {
-				fmt.Fprintf(w, "%s", content)
-				w.(http.Flusher).Flush() // Ensure immediate sending of the data
+				// Escape special characters to ensure valid JSON
+				escapedContent := escapeJSONString(content)
+
+				// Send the event to the client
+				data := fmt.Sprintf(`event: CustomEvent
+data: {"analysis": "%s"}
+
+`, escapedContent)
+
+				_, err := w.Write([]byte(data))
+				if err != nil {
+					return fmt.Errorf("failed to send event: %w", err)
+				}
+				w.(http.Flusher).Flush()
 			}
 		}
 	}
@@ -123,6 +131,16 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 	// Check for scanner errors
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("error reading stream: %w", err)
+	}
+
+	// Send close event after the stream ends
+	closeMessage := `event: Close
+data: Stream Ended
+
+`
+	_, err = w.Write([]byte(closeMessage))
+	if err != nil {
+		return fmt.Errorf("failed to send close event: %w", err)
 	}
 
 	return nil
@@ -135,4 +153,13 @@ func limitTextToTokens(text string, maxWords int) string {
 		return strings.Join(words[:maxWords], " ")
 	}
 	return text
+}
+
+func escapeJSONString(str string) string {
+	// Substituir quebras de linha e outros caracteres especiais para que fiquem válidos no JSON
+	escaped := strings.ReplaceAll(str, `"`, `\"`)
+	escaped = strings.ReplaceAll(escaped, "\n", `\n`)
+	escaped = strings.ReplaceAll(escaped, "\r", `\r`)
+	escaped = strings.ReplaceAll(escaped, "\t", `\t`)
+	return escaped
 }
