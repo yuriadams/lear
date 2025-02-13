@@ -9,9 +9,18 @@ import (
 	"golang.org/x/net/html"
 )
 
-func ScrapeMetadata(gutenbergID int) (*domain.Metadata, error) {
-	url := fmt.Sprintf("https://www.gutenberg.org/ebooks/%d", gutenbergID)
+type IScraperMetadata interface {
+	ScrapeMetadata(url string) (*domain.Metadata, error)
+}
 
+type ScraperMetadata struct {
+}
+
+func NewScraperMetadata() *ScraperMetadata {
+	return &ScraperMetadata{}
+}
+
+func (s *ScraperMetadata) ScrapeMetadata(url string) (*domain.Metadata, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch metadata page: %w", err)

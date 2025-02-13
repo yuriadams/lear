@@ -10,17 +10,8 @@ import (
 	"github.com/yuriadams/lear/internal/service/engine"
 )
 
-const SambaNovaChatAPIURL = "https://api.sambanova.ai/v1/chat/completions"
-
-type ChatMessage struct {
-	Role    string `json:"role"`    // Role can be "user", "assistant", or "system"
-	Content string `json:"content"` // Content of the message
-}
-
-type ChatRequest struct {
-	Model    string        `json:"model"`    // Model name (e.g., "Meta-Llama-3.1-70B-Instruct")
-	Messages []ChatMessage `json:"messages"` // List of conversation messages
-	Stream   bool          `json:"stream"`   // Enable streaming responses
+type IAnalysisService interface {
+	StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) error
 }
 
 type StreamedChunk struct {
@@ -133,7 +124,6 @@ func limitTextToTokens(text string, maxWords int) string {
 }
 
 func escapeJSONString(str string) string {
-	// Substituir quebras de linha e outros caracteres especiais para que fiquem válidos no JSON
 	escaped := strings.ReplaceAll(str, `"`, `\"`)
 	escaped = strings.ReplaceAll(escaped, "\n", `\n`)
 	escaped = strings.ReplaceAll(escaped, "\r", `\r`)

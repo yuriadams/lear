@@ -18,19 +18,13 @@ type Page struct {
 }
 
 type BookHandler struct {
-	Usecase   *usecase.BookUsecase
-	Service   *service.AnalysisService
+	Usecase   usecase.IBookUsecase
+	Service   service.IAnalysisService
 	Templates *template.Template
 	Logger    *service.Logger
 }
 
-func NewBookHandler(usecase *usecase.BookUsecase, analysis *service.AnalysisService) *BookHandler {
-	tmpl := template.Must(template.ParseFiles(
-		"web/templates/layout.html",
-		"web/templates/index.html",
-		"web/templates/show.html",
-	))
-
+func NewBookHandler(usecase usecase.IBookUsecase, analysis service.IAnalysisService, tmpl *template.Template) *BookHandler {
 	logger := service.NewLogger("[BookHandler]")
 	return &BookHandler{Usecase: usecase, Service: analysis, Templates: tmpl, Logger: logger}
 }

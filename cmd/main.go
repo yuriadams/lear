@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -23,10 +24,19 @@ func main() {
 	}
 	defer db.Close()
 
-	bookRepo := repository.NewBookRepository(db)
-	bookUsecase := usecase.NewBookUsecase(bookRepo)
 	analysisService := service.NewAnalysisService()
-	bookHandler := delivery.NewBookHandler(bookUsecase, analysisService)
+	scraperMetadata := service.NewScraperMetadata()
+
+	bookRepo := repository.NewBookRepository(db)
+	bookUsecase := usecase.NewBookUsecase(bookRepo, scraperMetadata)
+	bookHandler := delivery.NewBookHandler(
+		bookUsecase,
+		analysisService,
+		template.Must(template.ParseFiles(
+			"web/templates/layout.html",
+			"web/templates/index.html",
+			"web/templates/show.html",
+		)))
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", bookHandler.Index).Methods("GET")

@@ -10,9 +10,14 @@ import (
 	"github.com/yuriadams/lear/internal/service"
 )
 
+type IBookUsecase interface {
+	FetchBook(gutenbergID int) (*domain.Book, error)
+}
+
 type BookUsecase struct {
-	Repo   repository.IBookRepository
-	Logger *service.Logger
+	Repo    repository.IBookRepository
+	Scraper service.IScraperMetadata
+	Logger  *service.Logger
 }
 
 type BookAnalysis struct {
@@ -21,8 +26,8 @@ type BookAnalysis struct {
 	Characters []string
 }
 
-func NewBookUsecase(repo repository.IBookRepository) *BookUsecase {
-	return &BookUsecase{Repo: repo, Logger: service.NewLogger("[BookUsecase]")}
+func NewBookUsecase(repo repository.IBookRepository, scraper service.IScraperMetadata) *BookUsecase {
+	return &BookUsecase{Repo: repo, Scraper: scraper, Logger: service.NewLogger("[BookUsecase]")}
 }
 
 func (u *BookUsecase) FetchBook(gutenbergID int) (*domain.Book, error) {
@@ -39,7 +44,9 @@ func (u *BookUsecase) FetchBook(gutenbergID int) (*domain.Book, error) {
 		return existingBook, nil
 	}
 
-	metadata, err := service.ScrapeMetadata(gutenbergID)
+	url := fmt.Sprintf("https://www.gutenberg.org/ebooks/%d", gutenbergID)
+
+	metadata, err := u.Scraper.ScrapeMetadata(url)
 	if err != nil {
 		u.Logger.LogError("Failed to fetch metadata", err)
 		return nil, err
