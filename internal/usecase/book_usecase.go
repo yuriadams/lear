@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/yuriadams/lear/internal/model"
+	"github.com/yuriadams/lear/internal/domain"
 	"github.com/yuriadams/lear/internal/repository"
 	"github.com/yuriadams/lear/internal/service"
 )
 
 type BookUsecase struct {
-	Repo   *repository.BookRepository
+	Repo   repository.IBookRepository
 	Logger *service.Logger
 }
 
@@ -21,11 +21,11 @@ type BookAnalysis struct {
 	Characters []string
 }
 
-func NewBookUsecase(repo *repository.BookRepository) *BookUsecase {
+func NewBookUsecase(repo repository.IBookRepository) *BookUsecase {
 	return &BookUsecase{Repo: repo, Logger: service.NewLogger("[BookUsecase]")}
 }
 
-func (u *BookUsecase) FetchBook(gutenbergID int) (*model.Book, error) {
+func (u *BookUsecase) FetchBook(gutenbergID int) (*domain.Book, error) {
 	u.Logger.SetTags(fmt.Sprintf("[book-%d]", gutenbergID))
 
 	existingBook, err := u.Repo.GetBookByID(gutenbergID)
@@ -62,7 +62,7 @@ func (u *BookUsecase) FetchBook(gutenbergID int) (*model.Book, error) {
 
 	u.Logger.LogInfo("Content fetched successfully")
 
-	book := &model.Book{
+	book := &domain.Book{
 		GutenbergID: gutenbergID,
 		Content:     string(content),
 		Metadata:    *metadata,

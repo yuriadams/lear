@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/yuriadams/lear/internal/controller"
+	"github.com/yuriadams/lear/internal/delivery"
 	"github.com/yuriadams/lear/internal/repository"
+	"github.com/yuriadams/lear/internal/service"
 	"github.com/yuriadams/lear/internal/usecase"
 
 	"github.com/gorilla/mux"
@@ -24,7 +25,8 @@ func main() {
 
 	bookRepo := repository.NewBookRepository(db)
 	bookUsecase := usecase.NewBookUsecase(bookRepo)
-	bookHandler := controller.NewBookHandler(bookUsecase)
+	analysisService := service.NewAnalysisService()
+	bookHandler := delivery.NewBookHandler(bookUsecase, analysisService)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", bookHandler.Index).Methods("GET")

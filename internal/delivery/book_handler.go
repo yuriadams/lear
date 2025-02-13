@@ -1,4 +1,4 @@
-package controller
+package delivery
 
 import (
 	"bytes"
@@ -19,11 +19,12 @@ type Page struct {
 
 type BookHandler struct {
 	Usecase   *usecase.BookUsecase
+	Service   *service.AnalysisService
 	Templates *template.Template
 	Logger    *service.Logger
 }
 
-func NewBookHandler(usecase *usecase.BookUsecase) *BookHandler {
+func NewBookHandler(usecase *usecase.BookUsecase, analysis *service.AnalysisService) *BookHandler {
 	tmpl := template.Must(template.ParseFiles(
 		"web/templates/layout.html",
 		"web/templates/index.html",
@@ -31,7 +32,7 @@ func NewBookHandler(usecase *usecase.BookUsecase) *BookHandler {
 	))
 
 	logger := service.NewLogger("[BookHandler]")
-	return &BookHandler{Usecase: usecase, Templates: tmpl, Logger: logger}
+	return &BookHandler{Usecase: usecase, Service: analysis, Templates: tmpl, Logger: logger}
 }
 
 func (h *BookHandler) Index(w http.ResponseWriter, r *http.Request) {
@@ -40,13 +41,13 @@ func (h *BookHandler) Index(w http.ResponseWriter, r *http.Request) {
 
 func (h *BookHandler) Show(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bookId := vars["id"]
+	gutenbergID := vars["id"]
 
-	h.Logger.SetTags(fmt.Sprintf("[book-%s]", bookId))
+	h.Logger.SetTags(fmt.Sprintf("[book-%s]", gutenbergID))
 
-	id, err := strconv.Atoi(bookId)
+	id, err := strconv.Atoi(gutenbergID)
 	if err != nil {
-		h.Logger.LogError("Failed to parse bookID", err)
+		h.Logger.LogError("Failed to parse gutenbergID", err)
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
@@ -77,13 +78,13 @@ func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, au
 
 func (h *BookHandler) StreamAnalysis(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
-	bookId := vars["id"]
+	gutenbergID := vars["id"]
 
-	h.Logger.SetTags(fmt.Sprintf("[book-%s]", bookId))
+	h.Logger.SetTags(fmt.Sprintf("[book-%s]", gutenbergID))
 
-	id, err := strconv.Atoi(bookId)
+	id, err := strconv.Atoi(gutenbergID)
 	if err != nil {
-		h.Logger.LogError("Failed to parse bookID", err)
+		h.Logger.LogError("Failed to parse gutenbergID", err)
 		http.Error(w, "Invalid ID", http.StatusBadRequest)
 		return
 	}
@@ -95,7 +96,7 @@ func (h *BookHandler) StreamAnalysis(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = service.StreamTextAnalysis(w, r, book.Content)
+	err = h.Service.StreamTextAnalysis(w, r, book.Content)
 	if err != nil {
 		http.Error(w, "Failed to stream analysis: "+err.Error(), http.StatusInternalServerError)
 	}

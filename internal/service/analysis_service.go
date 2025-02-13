@@ -2,13 +2,12 @@ package service
 
 import (
 	"bufio"
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
-	"os"
 	"strings"
+
+	"github.com/yuriadams/lear/internal/service/engine"
 )
 
 const SambaNovaChatAPIURL = "https://api.sambanova.ai/v1/chat/completions"
@@ -32,8 +31,16 @@ type StreamedChunk struct {
 	} `json:"choices"`
 }
 
+type AnalysisService struct {
+	aiEngine engine.AiEngine
+}
+
+func NewAnalysisService() *AnalysisService {
+	return &AnalysisService{aiEngine: engine.NewSambaNovaClient()}
+}
+
 // StreamTextAnalysis handles streaming responses from the SambaNova API and sends them as SSE
-func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) error {
+func (a *AnalysisService) StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) error {
 	// Configure headers for SSE
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
@@ -51,44 +58,14 @@ func StreamTextAnalysis(w http.ResponseWriter, r *http.Request, text string) err
 	4. Summarize the plot briefly.
 	`, shortenedText)
 
-	// Prepare the request payload
-	chatRequest := ChatRequest{
-		Model: "Meta-Llama-3.1-70B-Instruct",
-		Messages: []ChatMessage{
-			{
-				Role:    "user",
-				Content: prompt,
-			},
-		},
-		Stream: true,
-	}
+	resp, err := a.aiEngine.StreamChat(prompt)
 
-	reqBody, err := json.Marshal(chatRequest)
 	if err != nil {
-		return fmt.Errorf("failed to create request body: %w", err)
-	}
-
-	req, err := http.NewRequest("POST", SambaNovaChatAPIURL, bytes.NewBuffer(reqBody))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Authorization", "Bearer "+os.Getenv("AI_API_TOKEN"))
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return fmt.Errorf("failed to perform request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to analyze text, status %d: %s", resp.StatusCode, string(body))
+		return fmt.Errorf("failed to stream chat: %w", err)
 	}
 
 	// Process the streaming response line by line
-	scanner := bufio.NewScanner(resp.Body)
+	scanner := bufio.NewScanner(resp)
 	for scanner.Scan() {
 		line := scanner.Text()
 

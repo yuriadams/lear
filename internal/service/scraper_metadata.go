@@ -5,12 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yuriadams/lear/internal/model"
+	"github.com/yuriadams/lear/internal/domain"
 	"golang.org/x/net/html"
 )
 
-func ScrapeMetadata(bookID int) (*model.Metadata, error) {
-	url := fmt.Sprintf("https://www.gutenberg.org/ebooks/%d", bookID)
+func ScrapeMetadata(gutenbergID int) (*domain.Metadata, error) {
+	url := fmt.Sprintf("https://www.gutenberg.org/ebooks/%d", gutenbergID)
 
 	resp, err := http.Get(url)
 	if err != nil {
@@ -27,7 +27,7 @@ func ScrapeMetadata(bookID int) (*model.Metadata, error) {
 		return nil, fmt.Errorf("failed to parse HTML: %w", err)
 	}
 
-	metadata := &model.Metadata{}
+	metadata := &domain.Metadata{}
 
 	var parse func(*html.Node)
 	parse = func(n *html.Node) {
