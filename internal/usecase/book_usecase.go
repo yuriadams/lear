@@ -70,26 +70,10 @@ func (u *BookUsecase) FetchBook(gutenbergID int) (*model.Book, error) {
 
 	err = u.Repo.SaveBook(book)
 	if err != nil {
+		u.Logger.LogError("Failed to save book", err)
 		return nil, err
 	}
 
 	u.Logger.LogInfo("Book saved successfully and returning")
 	return book, nil
-}
-
-func (u *BookUsecase) AnalyzeBookContent(gutenbergID int) (*BookAnalysis, error) {
-	u.Logger.SetTags(fmt.Sprintf("[book-%d]", gutenbergID))
-
-	book, err := u.Repo.GetBookByID(gutenbergID)
-	if err != nil || book == nil {
-		u.Logger.LogError("Failed fetch Book", err)
-		return nil, err
-	}
-
-	_, err = service.RequestCompletion(book.Content)
-	if err != nil {
-		return nil, err
-	}
-
-	return &BookAnalysis{}, nil
 }

@@ -25,12 +25,11 @@ func main() {
 	bookRepo := repository.NewBookRepository(db)
 	bookUsecase := usecase.NewBookUsecase(bookRepo)
 	bookHandler := controller.NewBookHandler(bookUsecase)
-	textAnalysisHandler := controller.NewTextAnalysisHandler(bookUsecase)
 
 	router := mux.NewRouter()
 	router.HandleFunc("/", bookHandler.Index).Methods("GET")
 	router.HandleFunc("/books/{id:[0-9]+}", bookHandler.Show).Methods("GET")
-	router.HandleFunc("/books/{id:[0-9]+}/analyze", textAnalysisHandler.Post).Methods("GET")
+	router.HandleFunc("/books/{id:[0-9]+}/analyze", bookHandler.StreamAnalysis).Methods("GET")
 
 	fmt.Println("Server running on :3000")
 	log.Fatal(http.ListenAndServe(":3000", router))

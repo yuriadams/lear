@@ -74,3 +74,29 @@ func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, au
 		"Body":  template.HTML(body.String()),
 	})
 }
+
+func (h *BookHandler) StreamAnalysis(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	bookId := vars["id"]
+
+	h.Logger.SetTags(fmt.Sprintf("[book-%s]", bookId))
+
+	id, err := strconv.Atoi(bookId)
+	if err != nil {
+		h.Logger.LogError("Failed to parse bookID", err)
+		http.Error(w, "Invalid ID", http.StatusBadRequest)
+		return
+	}
+
+	book, err := h.Usecase.FetchBook(id)
+	if err != nil {
+		h.Logger.LogError("Failed to fetch book", err)
+		http.Error(w, "Failed to fetch book", http.StatusNotFound)
+		return
+	}
+
+	err = service.StreamTextAnalysis(w, r, book.Content)
+	if err != nil {
+		http.Error(w, "Failed to stream analysis: "+err.Error(), http.StatusInternalServerError)
+	}
+}
