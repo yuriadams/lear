@@ -23,11 +23,11 @@ type StreamedChunk struct {
 }
 
 type AnalysisService struct {
-	aiEngine engine.AiEngine
+	AiEngine engine.AiEngine
 }
 
 func NewAnalysisService() *AnalysisService {
-	return &AnalysisService{aiEngine: engine.NewSambaNovaClient()}
+	return &AnalysisService{AiEngine: engine.NewSambaNovaClient()}
 }
 
 // StreamTextAnalysis handles streaming responses from the SambaNova API and sends them as SSE
@@ -49,13 +49,16 @@ func (a *AnalysisService) StreamTextAnalysis(w http.ResponseWriter, r *http.Requ
 	4. Summarize the plot briefly.
 	`, shortenedText)
 
-	resp, err := a.aiEngine.StreamChat(prompt)
+	resp, err := a.AiEngine.StreamChat(prompt)
 
 	if err != nil {
 		return fmt.Errorf("failed to stream chat: %w", err)
 	}
 
-	// Process the streaming response line by line
+	if resp == nil {
+		return fmt.Errorf("response stream is nil")
+	}
+
 	scanner := bufio.NewScanner(resp)
 	for scanner.Scan() {
 		line := scanner.Text()
@@ -68,7 +71,6 @@ func (a *AnalysisService) StreamTextAnalysis(w http.ResponseWriter, r *http.Requ
 		// Remove the leading "data: " prefix
 		line = strings.TrimPrefix(line, "data: ")
 
-		// Decode the JSON chunk
 		var chunk StreamedChunk
 		if err := json.Unmarshal([]byte(line), &chunk); err != nil {
 			return fmt.Errorf("failed to decode streamed chunk: %w", err)
@@ -96,7 +98,6 @@ data: {"analysis": "%s"}
 		}
 	}
 
-	// Check for scanner errors
 	if err := scanner.Err(); err != nil {
 		return fmt.Errorf("error reading stream: %w", err)
 	}
