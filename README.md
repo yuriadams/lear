@@ -1,4 +1,4 @@
-# Project Gutenberg Explorer API
+# Project King Lear Explorer API
 
 Welcome to the **Project King Lear Explorer API**! This API powers the exploration and analysis of books from Project Gutenberg, providing metadata extraction, text analysis, and streaming functionality for real-time insights. It's built with **Golang**, utilizes **Gorilla Mux** for routing, and integrates with the **SambaNova Cloud LLM** for advanced text analysis.
 
