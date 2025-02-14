@@ -2,7 +2,6 @@ package main
 
 import (
 	"database/sql"
-	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -18,6 +17,11 @@ import (
 )
 
 func main() {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+
 	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal(err)
@@ -43,6 +47,6 @@ func main() {
 	router.HandleFunc("/books/{id:[0-9]+}", bookHandler.Show).Methods("GET")
 	router.HandleFunc("/books/{id:[0-9]+}/analyze", bookHandler.StreamAnalysis).Methods("GET")
 
-	fmt.Println("Server running on :3000")
-	log.Fatal(http.ListenAndServe(":3000", router))
+	log.Printf("Server running on :%s", port)
+	log.Fatal(http.ListenAndServe(":"+port, router))
 }
