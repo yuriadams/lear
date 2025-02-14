@@ -13,7 +13,6 @@ import (
 	"github.com/yuriadams/lear/internal/domain"
 )
 
-// Mock Usecase and Service
 type MockBookUsecase struct {
 	mock.Mock
 }
@@ -21,6 +20,11 @@ type MockBookUsecase struct {
 func (m *MockBookUsecase) FetchBook(id int) (*domain.Book, error) {
 	args := m.Called(id)
 	return args.Get(0).(*domain.Book), args.Error(1)
+}
+
+func (m *MockBookUsecase) FetchAllBooks() ([]domain.Book, error) {
+	args := m.Called()
+	return args.Get(0).([]domain.Book), args.Error(1)
 }
 
 type MockAnalysisService struct {
@@ -61,17 +65,42 @@ func createTestTemplates() *template.Template {
 	return tmpl
 }
 
-func TestBookHandler_Show(t *testing.T) {
-	// Create mock dependencies
+func TestBookHandler_Index(t *testing.T) {
 	mockUsecase := new(MockBookUsecase)
 	mockService := new(MockAnalysisService)
 	templates := createTestTemplates()
 
 	handler := delivery.NewBookHandler(mockUsecase, mockService, templates)
 
-	// Test cases
+	t.Run("Listing books", func(t *testing.T) {
+		mockUsecase.On("FetchAllBooks").Return([]domain.Book{
+			{
+				GutenbergID: 1,
+				Metadata:    domain.Metadata{Title: "Test Title", Author: "Test Author"},
+			},
+		}, nil)
+
+		req, _ := http.NewRequest("GET", "/", nil)
+		rec := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/", handler.Index)
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+}
+
+func TestBookHandler_Show(t *testing.T) {
+	mockUsecase := new(MockBookUsecase)
+	mockService := new(MockAnalysisService)
+	templates := createTestTemplates()
+
+	handler := delivery.NewBookHandler(mockUsecase, mockService, templates)
+
 	t.Run("Valid book ID", func(t *testing.T) {
-		// Arrange
+
 		mockUsecase.On("FetchBook", 123).Return(&domain.Book{
 			Content:  "This is the content of the book.",
 			Metadata: domain.Metadata{Title: "Test Title", Author: "Test Author"},
@@ -83,10 +112,8 @@ func TestBookHandler_Show(t *testing.T) {
 		router := mux.NewRouter()
 		router.HandleFunc("/books/{id}", handler.Show)
 
-		// Act
 		router.ServeHTTP(rec, req)
 
-		// Assert
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Contains(t, rec.Body.String(), "Test Title")
 		assert.Contains(t, rec.Body.String(), "Test Author")

@@ -12,6 +12,7 @@ import (
 
 type IBookUsecase interface {
 	FetchBook(gutenbergID int) (*domain.Book, error)
+	FetchAllBooks() ([]domain.Book, error)
 }
 
 type BookUsecase struct {
@@ -28,6 +29,10 @@ type BookAnalysis struct {
 
 func NewBookUsecase(repo repository.IBookRepository, scraper service.IScraperMetadata) *BookUsecase {
 	return &BookUsecase{Repo: repo, Scraper: scraper, Logger: service.NewLogger("[BookUsecase]")}
+}
+
+func (u *BookUsecase) FetchAllBooks() ([]domain.Book, error) {
+	return u.Repo.GetAllBooks()
 }
 
 func (u *BookUsecase) FetchBook(gutenbergID int) (*domain.Book, error) {

@@ -8,6 +8,7 @@ import (
 )
 
 type IBookRepository interface {
+	GetAllBooks() ([]domain.Book, error)
 	GetBookByID(gutenbergID int) (*domain.Book, error)
 	SaveBook(book *domain.Book) error
 }
@@ -18,6 +19,26 @@ type BookRepository struct {
 
 func NewBookRepository(db *sql.DB) *BookRepository {
 	return &BookRepository{DB: db}
+}
+
+func (r *BookRepository) GetAllBooks() ([]domain.Book, error) {
+	rows, err := r.DB.Query(`SELECT id, gutenberg_id, content, metadata, created_at FROM books`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var books []domain.Book
+	for rows.Next() {
+		var book domain.Book
+		err := rows.Scan(&book.ID, &book.GutenbergID, &book.Content, &book.Metadata, &book.CreatedAt)
+		if err != nil {
+			return nil, err
+		}
+		books = append(books, book)
+	}
+
+	return books, nil
 }
 
 func (r *BookRepository) GetBookByID(gutenbergID int) (*domain.Book, error) {

@@ -13,15 +13,20 @@ type MockBookRepository struct {
 	mock.Mock
 }
 
+func (m *MockBookRepository) SaveBook(book *domain.Book) error {
+	args := m.Called(book)
+	return args.Error(0)
+}
+
 func (m *MockBookRepository) GetBookByID(gutenbergID int) (*domain.Book, error) {
 	args := m.Called(gutenbergID)
 	book, _ := args.Get(0).(*domain.Book)
 	return book, args.Error(1)
 }
 
-func (m *MockBookRepository) SaveBook(book *domain.Book) error {
-	args := m.Called(book)
-	return args.Error(0)
+func (m *MockBookRepository) GetAllBooks() ([]domain.Book, error) {
+	args := m.Called()
+	return args.Get(0).([]domain.Book), args.Error(1)
 }
 
 type MockScraperMetadata struct {

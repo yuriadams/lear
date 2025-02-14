@@ -30,7 +30,22 @@ func NewBookHandler(usecase usecase.IBookUsecase, analysis service.IAnalysisServ
 }
 
 func (h *BookHandler) Index(w http.ResponseWriter, r *http.Request) {
-	h.renderPage(w, "index.html", "", "", "")
+	books, err := h.Usecase.FetchAllBooks()
+	if err != nil {
+		http.Error(w, "Failed to fetch books", http.StatusInternalServerError)
+		return
+	}
+
+	bookList := make([]map[string]interface{}, 0)
+	for _, book := range books {
+		bookList = append(bookList, map[string]interface{}{
+			"Title":       book.Metadata.Title,
+			"Author":      book.Metadata.Author,
+			"GutenbergID": book.GutenbergID,
+		})
+	}
+
+	h.renderPage(w, "index.html", "", "", "", bookList)
 }
 
 func (h *BookHandler) Show(w http.ResponseWriter, r *http.Request) {
@@ -53,15 +68,17 @@ func (h *BookHandler) Show(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.renderPage(w, "show.html", book.Content, book.Metadata.Title, book.Metadata.Author)
+	h.renderPage(w, "show.html", book.Content, book.Metadata.Title, book.Metadata.Author, nil)
 }
 
-func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, author string) {
+func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, author string, books []map[string]interface{}) {
 	var body bytes.Buffer
+
 	h.Templates.ExecuteTemplate(&body, page, map[string]interface{}{
 		"Title":   title,
 		"Author":  author,
 		"Content": content,
+		"Books":   books,
 	})
 
 	h.Templates.ExecuteTemplate(w, "layout.html", map[string]interface{}{

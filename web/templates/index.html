@@ -9,6 +9,23 @@
   <div class="animate-spin rounded-full h-8 w-8 border-t-2 border-blue-500"></div>
 </div>
 
+<div class="mt-6 max-w-4xl mx-auto">
+  <h2 class="text-2xl font-bold mb-4">Previously Analyzed Books</h2>
+  {{ if .Books }}
+    <ul class="list-disc pl-6">
+      {{ range .Books }}
+        <li>
+          <a href="/books/{{ .GutenbergID }}" class="text-blue-500 hover:underline">
+            {{ .Title }} by {{ .Author }}
+          </a>
+        </li>
+      {{ end }}
+    </ul>
+  {{ else }}
+    <p class="text-gray-500">No books have been analyzed yet.</p>
+  {{ end }}
+</div>
+
 <script>
   document.getElementById("bookForm").addEventListener("submit", function(event) {
     event.preventDefault();
