@@ -72,7 +72,7 @@ The API will be available at `http://localhost:3000` by default.
 This API relies on specific environment variables and integrates with external services. Ensure that the following are set up:
 
 1. **Environment Variables:**
-   - `SAMBA_NOVA_API_KEY`: API key for the SambaNova Cloud.
+   - `AI_API_TOKEN`: API key for the SambaNova Cloud.
    - `DATABASE_URL`: Connection string for the PostgreSQL database.
 
 2. Use a tool like [Postman](https://www.postman.com/) or `curl` to test the API endpoints.
