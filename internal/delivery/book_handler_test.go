@@ -48,7 +48,18 @@ func createTestTemplates() *template.Template {
 		panic(err)
 	}
 
-	_, err = tmpl.New("index.html").Parse("<h1>Welcome to Project King Lear Explorer</h1>")
+	_, err = tmpl.New("index.html").Parse(`
+		<h1>Welcome to Project King Lear Explorer</h1>
+		<ul>
+			{{range .Books}}
+				<li>
+					<strong>Title:</strong> {{.Title}}<br>
+					<strong>Author:</strong> {{.Author}}<br>
+					<strong>ID:</strong> {{.GutenbergID}}
+				</li>
+			{{end}}
+		</ul>
+	`)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +87,11 @@ func TestBookHandler_Index(t *testing.T) {
 		mockUsecase.On("FetchAllBooks").Return([]domain.Book{
 			{
 				GutenbergID: 1,
-				Metadata:    domain.Metadata{Title: "Test Title", Author: "Test Author"},
+				Metadata:    domain.Metadata{Title: "Test Title 1", Author: "Author 1"},
+			},
+			{
+				GutenbergID: 2,
+				Metadata:    domain.Metadata{Title: "Test Title 2", Author: "Author 2"},
 			},
 		}, nil)
 
@@ -89,6 +104,12 @@ func TestBookHandler_Index(t *testing.T) {
 		router.ServeHTTP(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
+
+		body := rec.Body.String()
+		assert.Contains(t, body, "Test Title 1")
+		assert.Contains(t, body, "Author 1")
+		assert.Contains(t, body, "Test Title 2")
+		assert.Contains(t, body, "Author 2")
 	})
 }
 
@@ -118,5 +139,48 @@ func TestBookHandler_Show(t *testing.T) {
 		assert.Contains(t, rec.Body.String(), "Test Title")
 		assert.Contains(t, rec.Body.String(), "Test Author")
 		assert.Contains(t, rec.Body.String(), "This is the content of the book.")
+	})
+}
+
+func TestBookHandler_StreamAnalysis(t *testing.T) {
+	mockUsecase := new(MockBookUsecase)
+	mockService := new(MockAnalysisService)
+	templates := createTestTemplates()
+
+	handler := delivery.NewBookHandler(mockUsecase, mockService, templates)
+
+	t.Run("Stream analysis with valid book ID", func(t *testing.T) {
+		mockUsecase.On("FetchBook", 123).Return(&domain.Book{
+			Content:  "This is the content of the book.",
+			Metadata: domain.Metadata{Title: "Test Title", Author: "Test Author"},
+		}, nil)
+
+		mockService.On("StreamTextAnalysis", mock.Anything, mock.Anything, "This is the content of the book.").Return(nil)
+
+		req, _ := http.NewRequest("GET", "/books/123/analyze", nil)
+		rec := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/books/{id}/analyze", handler.StreamAnalysis)
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		mockUsecase.AssertCalled(t, "FetchBook", 123)
+		mockService.AssertCalled(t, "StreamTextAnalysis", mock.Anything, mock.Anything, "This is the content of the book.")
+	})
+
+	t.Run("Stream analysis with invalid book ID", func(t *testing.T) {
+		req, _ := http.NewRequest("GET", "/books/invalid/analyze", nil)
+		rec := httptest.NewRecorder()
+
+		router := mux.NewRouter()
+		router.HandleFunc("/books/{id}/analyze", handler.StreamAnalysis)
+
+		router.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		mockUsecase.AssertNotCalled(t, "FetchBook")
+		mockService.AssertNotCalled(t, "StreamTextAnalysis")
 	})
 }

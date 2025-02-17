@@ -71,22 +71,6 @@ func (h *BookHandler) Show(w http.ResponseWriter, r *http.Request) {
 	h.renderPage(w, "show.html", book.Content, book.Metadata.Title, book.Metadata.Author, nil)
 }
 
-func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, author string, books []map[string]interface{}) {
-	var body bytes.Buffer
-
-	h.Templates.ExecuteTemplate(&body, page, map[string]interface{}{
-		"Title":   title,
-		"Author":  author,
-		"Content": content,
-		"Books":   books,
-	})
-
-	h.Templates.ExecuteTemplate(w, "layout.html", map[string]interface{}{
-		"Title": "Project King Lear Explorer",
-		"Body":  template.HTML(body.String()),
-	})
-}
-
 func (h *BookHandler) StreamAnalysis(w http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 	gutenbergID := vars["id"]
@@ -111,4 +95,20 @@ func (h *BookHandler) StreamAnalysis(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to stream analysis: "+err.Error(), http.StatusInternalServerError)
 	}
+}
+
+func (h *BookHandler) renderPage(w http.ResponseWriter, page, content, title, author string, books []map[string]interface{}) {
+	var body bytes.Buffer
+
+	h.Templates.ExecuteTemplate(&body, page, map[string]interface{}{
+		"Title":   title,
+		"Author":  author,
+		"Content": content,
+		"Books":   books,
+	})
+
+	h.Templates.ExecuteTemplate(w, "layout.html", map[string]interface{}{
+		"Title": "Project King Lear Explorer",
+		"Body":  template.HTML(body.String()),
+	})
 }
