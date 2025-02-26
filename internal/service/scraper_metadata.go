@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,7 +11,7 @@ import (
 )
 
 type IScraperMetadata interface {
-	ScrapeMetadata(url string) (*domain.Metadata, error)
+	ScrapeMetadata(url string) ([]byte, error)
 }
 
 type ScraperMetadata struct {
@@ -20,7 +21,7 @@ func NewScraperMetadata() *ScraperMetadata {
 	return &ScraperMetadata{}
 }
 
-func (s *ScraperMetadata) ScrapeMetadata(url string) (*domain.Metadata, error) {
+func (s *ScraperMetadata) ScrapeMetadata(url string) ([]byte, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch metadata page: %w", err)
@@ -64,7 +65,13 @@ func (s *ScraperMetadata) ScrapeMetadata(url string) (*domain.Metadata, error) {
 
 	parse(doc)
 
-	return metadata, nil
+	jsonBytes, err := json.Marshal(metadata)
+	if err != nil {
+		fmt.Println("Error serializing to JSON:", err)
+		return nil, err
+	}
+
+	return jsonBytes, nil
 }
 
 func getNodeText(n *html.Node) string {
